@@ -296,6 +296,10 @@ function fillDraws(){
   showResult(list[0].d);
 }
 function grid(arr){ return `<div class="numgrid">${arr.map(n=>`<span>${n}</span>`).join('')}</div>`; }
+function det(n, arr, baht){
+  if (!arr.length) return `<details><summary>รางวัลที่ ${n} · ยังไม่มีข้อมูลงวดนี้</summary><p class="muted" style="margin:6px 0 0;font-size:.85rem">ข้อมูลต้นทางของงวดนี้ไม่สมบูรณ์ ตรวจรางวัลที่ ${n} ได้ที่ glo.or.th</p></details>`;
+  return `<details><summary>รางวัลที่ ${n} · ${arr.length} รางวัล · ${baht} ฿</summary>${grid(arr)}</details>`;
+}
 function showResult(d){
   const r = DATA.find(x=>x.d===d);
   const isLatest = d===last.d;
@@ -307,10 +311,7 @@ function showResult(d){
       <div class="ticket two"><div class="lbl">2 ตัวท้าย</div><div class="big">${r.t}</div><div class="sub">2,000 ฿</div></div>
     </div>
     <p class="sideinfo"><span>ข้างเคียง <b class="num">${r.n.join(' · ')||'–'}</b></span><span>3 ตัวบน <b class="num">${r.f.slice(3)}</b></span></p>
-    <details><summary>รางวัลที่ 2 · ${r.p2.length} รางวัล · 200,000 ฿</summary>${grid(r.p2)}</details>
-    <details><summary>รางวัลที่ 3 · ${r.p3.length} รางวัล · 80,000 ฿</summary>${grid(r.p3)}</details>
-    <details><summary>รางวัลที่ 4 · ${r.p4.length} รางวัล · 40,000 ฿</summary>${grid(r.p4)}</details>
-    <details><summary>รางวัลที่ 5 · ${r.p5.length} รางวัล · 20,000 ฿</summary>${grid(r.p5)}</details>`;
+    ${det(2,r.p2,'200,000')}${det(3,r.p3,'80,000')}${det(4,r.p4,'40,000')}${det(5,r.p5,'20,000')}`;
 }
 $('yearSel').onchange = fillDraws;
 $('drawSel').onchange = e => showResult(e.target.value);
