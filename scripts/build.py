@@ -25,6 +25,15 @@ for f in sorted(os.listdir(src)):
                 "tf": r.get("THREE_FIRST", []), "tl": r.get("THREE_LAST", r.get("THREE", [])),
                 "p2": [] if low else r.get("SECOND", []), "p3": [] if low else r.get("THIRD", []),
                 "p4": [] if low else r.get("FOURTH", []), "p5": [] if low else r.get("FIFTH", [])})
+# ---- งวดที่เพิ่มเอง (ยังไม่อยู่ในไฟล์ต้นทาง) ตรวจเทียบจากเว็บข่าวสลากหลายแหล่งแล้ว ----
+extra_path = os.path.join(root, "scripts", "extra_draws.json")
+if os.path.exists(extra_path):
+    for e in json.load(open(extra_path, encoding="utf-8")):
+        d = datetime.date.fromisoformat(e["d"])
+        s_ = "%d-1" % (d.month % 12 + 1) if d.day >= 26 else "%d-1" % d.month if d.day <= 8 else "%d-16" % d.month
+        o = {"d": e["d"], "s": s_, "f": e["f"], "n": ["%06d" % (int(e["f"]) - 1), "%06d" % ((int(e["f"]) + 1) % 1000000)],
+             "t": e["t"], "tf": e["tf"], "tl": e["tl"], "p2": e["p2"], "p3": e["p3"], "p4": e["p4"], "p5": e["p5"]}
+        out = [x for x in out if x["d"] != e["d"]] + [o]
 out.sort(key=lambda x: x["d"])
 
 # ---- ตรวจความสอดคล้องของข้อมูลทุกงวด ----
@@ -36,9 +45,9 @@ for o in out:
     chk(len(o["t"]) == 2 and o["t"].isdigit(), "2 ตัวท้าย")
     chk((len(o["tf"]) == 2 and len(o["tl"]) == 2) if new_fmt else (len(o["tl"]) == 4 and not o["tf"]), "จำนวนเลข 3 ตัว")
     chk(all(len(x) == 3 and x.isdigit() for x in o["tf"] + o["tl"]), "รูปแบบเลข 3 ตัว")
-    if o["p2"] or o["p3"] or o["p4"] or o["p5"]:
-        chk([len(o[k]) for k in ("p2", "p3", "p4", "p5")] == [5, 10, 50, 100], "จำนวนรางวัลที่ 2-5")
-        chk(all(len(x) == 6 and x.isdigit() for k in ("p2", "p3", "p4", "p5") for x in o[k]), "รูปแบบเลขรางวัลที่ 2-5")
+    for k, n_ in (("p2", 5), ("p3", 10), ("p4", 50), ("p5", 100)):
+        chk(len(o[k]) in (0, n_), "จำนวน " + k)          # ครบหรือเว้นว่างทั้งรางวัล
+        chk(all(len(x) == 6 and x.isdigit() for x in o[k]), "รูปแบบเลข " + k)
 print("ตรวจ %d งวด พบปัญหา %d รายการ" % (len(out), len(problems)))
 for x in problems: print("  ", x)
 
