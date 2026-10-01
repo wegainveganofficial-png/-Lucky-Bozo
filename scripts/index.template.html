@@ -164,17 +164,17 @@ footer a{color:var(--navy)}
         <circle cx="60" cy="68" r="9" fill="#E23B3B"/>
         <path d="M42 80 Q60 98 78 80" stroke="#E23B3B" stroke-width="6" fill="none" stroke-linecap="round"/>
       </svg>
-      <div><div class="t">Lucky Bozo</div><div class="d">ลานหวยตัวตลก · สถิติเลข 3 ตัว</div></div>
-      <span class="live" id="liveChip">วันนี้</span>
+      <div><div class="t">Lucky Bozo</div><div class="d" id="todayLabel">ลานหวยตัวตลก</div></div>
+      <span class="live" id="liveChip">งวดถัดไป</span>
     </div>
   </header>
 
   <section class="screen" id="results">
     <div class="hero">
-      <h1 id="heroTitle">วันนี้งวด 1 ต.ค. 2569</h1>
+      <h1 id="heroTitle">งวดถัดไป</h1>
       <p id="heroSub"></p>
       <div class="chips" id="heroChips"></div>
-      <div class="go"><button class="primary" data-go="wheel">หมุนวงล้อ</button><button data-go="stats">ดูเลขเด่นวันนี้</button></div>
+      <div class="go"><button class="primary" data-go="wheel">หมุนวงล้อ</button><button data-go="stats">ดูเลขเด่นงวดนี้</button></div>
     </div>
     <div class="screen-title"><div><small>ผลรางวัล</small><h2>ผลสลากย้อนหลัง 10 ปี</h2></div></div>
     <div class="pickers">
@@ -219,7 +219,7 @@ footer a{color:var(--navy)}
 
   <section class="screen" id="wheel" hidden>
     <div class="screen-title"><div><small>วงล้อเสี่ยงทาย</small><h2>หมุน 3 รอบ ได้เลข 3 ตัว</h2></div></div>
-    <div class="seg" id="modeSeg"><button data-v="stat" aria-pressed="true">ถ่วงตามสถิติวันนี้</button><button data-v="fair">สุ่มเท่ากันทุกเลข</button></div>
+    <div class="seg" id="modeSeg"><button data-v="stat" aria-pressed="true">ถ่วงตามสถิติงวดนี้</button><button data-v="fair">สุ่มเท่ากันทุกเลข</button></div>
     <div class="wheel-box"><div class="pointer" aria-hidden="true"></div><canvas id="wheelCv" width="800" height="800" aria-label="วงล้อเลข 0 ถึง 9"></canvas></div>
     <div class="slots" aria-live="polite"><div class="slot" id="s0">?</div><div class="slot" id="s1">?</div><div class="slot" id="s2">?</div></div>
     <div class="verdict" id="verdict"><span class="muted">วงล้อหมุนทีละหลัก ร้อย · สิบ · หน่วย</span></div>
@@ -257,20 +257,31 @@ const TH_M = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','�
 const thDate = iso => { const [y,m,d]=iso.split('-').map(Number); return `${d} ${TH_M[m]} ${y+543}`; };
 const slotName = s => { const [m,d]=s.split('-').map(Number); return `${d} ${TH_M[m]}`; };
 const $ = id => document.getElementById(id);
+/* วันที่จริงตามเวลาไทย (UTC+7) ไม่ขึ้นกับเขตเวลาของเครื่อง */
+const TH_DAY = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const bkk = new Date(Date.now() + 7*3600e3); const Y=bkk.getUTCFullYear(), M=bkk.getUTCMonth()+1, Dd=bkk.getUTCDate();
+const TODAY_ISO = `${Y}-${String(M).padStart(2,'0')}-${String(Dd).padStart(2,'0')}`;
+const bkkKey = () => { const b=new Date(Date.now()+7*3600e3); return b.toISOString().slice(0,10); };
+/* ข้ามเที่ยงคืนหรือกลับมาเปิดแท็บเดิมวันถัดไป ให้โหลดวันที่ใหม่ */
+const checkDate = () => { if (bkkKey() !== TODAY_ISO) location.reload(); };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDate(); });
+setInterval(checkDate, 60000);
 const isDrawDay = Dd===1 || Dd===16;
 const nx = isDrawDay ? {y:Y,m:M,d:Dd} : Dd<16 ? {y:Y,m:M,d:16} : {y:M===12?Y+1:Y, m:M===12?1:M+1, d:1};
 const TODAY = `${nx.y}-${String(nx.m).padStart(2,'0')}-${String(nx.d).padStart(2,'0')}`, TODAY_SLOT = `${nx.m}-${nx.d}`;
 const NOW_Y = Y;
 const last = DATA[DATA.length-1];
+const dayGap = (a,b) => Math.abs(new Date(a+'T00:00:00Z') - new Date(b+'T00:00:00Z'))/864e5;
+const hasResult = last.s===TODAY_SLOT && dayGap(last.d,TODAY) <= 5;   /* รองรับงวดเลื่อน 30 ธ.ค. / 17 ม.ค. / 2 พ.ค. */
+$('todayLabel').textContent = `วัน${TH_DAY[bkk.getUTCDay()]}ที่ ${Dd} ${TH_M[M]} ${Y+543}`;
 
 /* hero */
 $('nDraws').textContent = DATA.length;
 $('heroTitle').textContent = (isDrawDay?'วันนี้งวด ':'งวดถัดไป ') + thDate(TODAY);
-$('liveChip').textContent = (isDrawDay?'วันนี้ ':'งวด ') + slotName(TODAY_SLOT);
+$('liveChip').textContent = (isDrawDay?'วันนี้ ':'ถัดไป ') + slotName(TODAY_SLOT);
 $('dataRange').textContent = `${thDate(DATA[0].d)} – ${thDate(last.d)}`;
 $('dataSrc').textContent = SRC==='supabase' ? 'Supabase (สด)' : 'ข้อมูลในไฟล์';
-$('heroSub').textContent = `${last.d===TODAY?'ผลงวดนี้ออกแล้ว':'ผลออกบ่ายวันงวด'} · ข้อมูลถึงงวด ${thDate(last.d)} · มีสถิติวันที่ ${slotName(TODAY_SLOT)} ย้อนหลัง ${DATA.filter(r=>r.s===TODAY_SLOT).length} ปี`;
+$('heroSub').textContent = `${hasResult?'ผลงวดนี้ออกแล้ว':isDrawDay?'ผลวันนี้ออกช่วงบ่าย':'ผลออกช่วงบ่ายวันงวด'} · ข้อมูลถึงงวด ${thDate(last.d)} · มีสถิติวันที่ ${slotName(TODAY_SLOT)} ย้อนหลัง ${DATA.filter(r=>r.s===TODAY_SLOT).length} ปี`;
 const chips = [`${DATA.length} งวด`, `ล่าสุด ${last.f}`];
 $('heroChips').innerHTML = chips.map(c=>`<span class="chip">${c}</span>`).join('');
 
@@ -308,7 +319,7 @@ fillDraws();
 /* ---------- stats ---------- */
 const state = { src:'all', span:20, slot:TODAY_SLOT, page:0 };
 const slots = [...new Set(DATA.map(r=>r.s))].sort((a,b)=>{const [am,ad]=a.split('-').map(Number),[bm,bd]=b.split('-').map(Number);return am-bm||ad-bd;});
-$('slotSel').innerHTML = `<option value="all">ทุกงวด</option>` + slots.map(s=>`<option value="${s}" ${s===TODAY_SLOT?'selected':''}>${slotName(s)}${s===TODAY_SLOT?' (วันนี้)':''}</option>`).join('');
+$('slotSel').innerHTML = `<option value="all">ทุกงวด</option>` + slots.map(s=>`<option value="${s}" ${s===TODAY_SLOT?'selected':''}>${slotName(s)}${s===TODAY_SLOT?(isDrawDay?' (วันนี้)':' (งวดถัดไป)'):''}</option>`).join('');
 
 function hits(r, src){
   const out=[];
